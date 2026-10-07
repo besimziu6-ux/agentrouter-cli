@@ -399,7 +399,6 @@ def cmd_gui_serve(args: argparse.Namespace) -> int:
     host: str = args.host
     port: int = args.port
     url = f"http://{host}:{port}"
-    print(f"Serving at {url}")
     if bool(getattr(args, "open", False)):
         try:
             import webbrowser
