@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentrouter-cli"
+version = "0.1.0"
+description = "CLI for AgentRouter - chat, models, and autonomous agent with tools"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+authors = [{ name = "AgentRouter" }]
+keywords = ["agentrouter", "cli", "llm", "agent", "chat"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Software Development",
+  "Topic :: Utilities",
+]
+dependencies = ["requests"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "build", "twine"]
+test = ["pytest>=7"]
+
+[project.scripts]
+agentrouter = "agentrouter.cli:main"
+
+[project.urls]
+Homepage = "https://agentrouter.org"
+Repository = "https://github.com/besimziu6-ux/agentrouter-cli"
+Issues = "https://github.com/besimziu6-ux/agentrouter-cli/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+pythonpath = ["src"]
