@@ -147,7 +147,7 @@ def test_agent_static_served_with_mime():
                   default_model="test-model", config_path=None)
     with patch("agentrouter.gui_server.load_config", return_value=fake):
         server = create_server("127.0.0.1", 0)
-        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread = threading.Thread(target=lambda: server.serve_forever(poll_interval=0.02), daemon=True)
         thread.start()
         try:
             base = f"http://127.0.0.1:{server.server_address[1]}"

@@ -27,7 +27,7 @@ def _fake_config(**kwargs):
 
 def _start_server():
     server = create_server("127.0.0.1", 0)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread = threading.Thread(target=lambda: server.serve_forever(poll_interval=0.02), daemon=True)
     thread.start()
     return server, thread, f"http://127.0.0.1:{server.server_address[1]}"
 
