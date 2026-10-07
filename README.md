@@ -103,18 +103,31 @@ Sessions are stored as JSONL under `~/.config/agentrouter/sessions/`.
 
 Local browser UI built on stdlib `http.server` (no new dependencies, reuses `requests` only).
 
+Bare `agentrouter` launches the GUI (same as `serve`):
+
 ```bash
-agentrouter gui serve --port 8787 --open
+agentrouter
+agentrouter serve --port 8787 --open
 agentrouter gui serve --host 127.0.0.1 --port 8787 --no-open
 ```
 
+`agentrouter serve` is a shortcut for `agentrouter gui serve`.
+
 Open `http://127.0.0.1:8787` for chat, agent timeline, sessions, and config views.
+
+Tabs/modes:
+
+- Chat: streaming markdown with code Copy buttons, Enter to send / Shift+Enter newline.
+- Agent: Codex-style step and tool cards streaming from `/api/agent`.
+- Sessions: search and load prior sessions from the sidebar.
+- Config: set API key and default model, Test connection via `/api/models`.
 
 Endpoints:
 
 | Method | Path | Description |
 |---|---|---|
 | GET | `/` | HTML frontend (`text/html`, title `AgentRouter`) |
+| GET | `/api/health` | Health check (`{"status":"ok"}`) |
 | GET | `/api/models` | List models via `AgentRouterClient` |
 | POST | `/api/chat` | Chat relay, SSE `data:` lines + `data: [DONE]` |
 | POST | `/api/agent` | Agent relay, SSE step/tool/done events |

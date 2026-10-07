@@ -101,6 +101,8 @@ class GuiHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
         self._cors()
         self.end_headers()
         self.wfile.write(body)
@@ -110,14 +112,47 @@ class GuiHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "public, max-age=60")
+        self.send_header("X-Content-Type-Options", "nosniff")
         self.end_headers()
         self.wfile.write(body)
+
+    def _send_favicon(self) -> None:
+        self.send_response(204)
+        self.send_header("Content-Length", "0")
+        self.send_header("Cache-Control", "public, max-age=86400")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.end_headers()
+
+    def _send_not_found(self, path: str) -> None:
+        if path.startswith("/api/"):
+            hint = (
+                "available paths: GET /api/health, GET /api/models, "
+                "GET /api/sessions, GET /api/config, "
+                "POST /api/chat, POST /api/agent"
+            )
+        else:
+            hint = "available paths: GET /, GET /api/health, GET /api/models"
+        self._send_json({"error": "not found", "path": path, "hint": hint}, status=404)
+
+    def _reject_foreign(self) -> bool:
+        try:
+            cfg = load_config()
+            validate_base_url(cfg.base_url)
+        except ValueError as exc:
+            self._send_json({"error": str(exc)}, status=400)
+            return True
+        return False
+
+    def _handle_health(self) -> None:
+        self._send_json({"status": "ok"}, status=200)
 
     def _send_sse_headers(self) -> None:
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
-        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Cache-Control", "no-store")
         self.send_header("Connection", "keep-alive")
+        self.send_header("X-Content-Type-Options", "nosniff")
         self._cors()
         self.end_headers()
 
@@ -141,13 +176,22 @@ class GuiHandler(BaseHTTPRequestHandler):
 
     def do_OPTIONS(self) -> None:  # noqa: N802
         self.send_response(204)
+        self.send_header("X-Content-Type-Options", "nosniff")
         self._cors()
         self.end_headers()
 
     def do_GET(self) -> None:  # noqa: N802
         path = urlparse(self.path).path
+        if self._reject_foreign():
+            return
         if path == "/" or path == "/index.html":
             self._send_html(GUI_HTML)
+            return
+        if path == "/favicon.ico":
+            self._send_favicon()
+            return
+        if path == "/api/health":
+            self._handle_health()
             return
         if path == "/api/models":
             self._handle_models()
@@ -161,10 +205,12 @@ class GuiHandler(BaseHTTPRequestHandler):
         if path == "/api/config":
             self._handle_config_get()
             return
-        self._send_json({"error": "not found"}, status=404)
+        self._send_not_found(path)
 
     def do_POST(self) -> None:  # noqa: N802
         path = urlparse(self.path).path
+        if self._reject_foreign():
+            return
         if path == "/api/chat":
             self._handle_chat()
             return
@@ -174,7 +220,7 @@ class GuiHandler(BaseHTTPRequestHandler):
         if path == "/api/config":
             self._handle_config_post()
             return
-        self._send_json({"error": "not found"}, status=404)
+        self._send_not_found(path)
 
     def _handle_models(self) -> None:
         try:

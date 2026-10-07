@@ -21,6 +21,13 @@ from agentrouter.config import load_config, save_config
 from agentrouter.streaming import iter_response_content
 
 
+def _add_serve_args(p: argparse.ArgumentParser) -> None:
+    p.add_argument("--port", type=int, default=8787, help="Port to serve on (default 8787)")
+    p.add_argument("--host", default="127.0.0.1", help="Host to bind (default 127.0.0.1)")
+    p.add_argument("--open", dest="open", action="store_true", default=False, help="Open browser automatically")
+    p.add_argument("--no-open", dest="open", action="store_false", help="Do not open browser")
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="agentrouter", description="CLI for AgentRouter")
     p.add_argument("--version", action="store_true", help="Print version and exit")
@@ -77,13 +84,16 @@ def build_parser() -> argparse.ArgumentParser:
     run.set_defaults(func=cmd_agent_run)
 
     gui = sub.add_parser("gui", help="Launch local GUI")
-    gui_sub = gui.add_subparsers(dest="gui_command", required=True)
+    _add_serve_args(gui)
+    gui_sub = gui.add_subparsers(dest="gui_command", required=False)
     serve_p = gui_sub.add_parser("serve", help="Serve the local GUI in a browser")
-    serve_p.add_argument("--port", type=int, default=8787, help="Port to serve on (default 8787)")
-    serve_p.add_argument("--host", default="127.0.0.1", help="Host to bind (default 127.0.0.1)")
-    serve_p.add_argument("--open", dest="open", action="store_true", default=False, help="Open browser automatically")
-    serve_p.add_argument("--no-open", dest="open", action="store_false", help="Do not open browser")
+    _add_serve_args(serve_p)
     serve_p.set_defaults(func=cmd_gui_serve)
+    gui.set_defaults(func=cmd_gui_serve)
+
+    serve_top = sub.add_parser("serve", help="Serve the local GUI in a browser")
+    _add_serve_args(serve_top)
+    serve_top.set_defaults(func=cmd_gui_serve)
 
     upd = sub.add_parser("update", help="Check for CLI updates")
     upd_sub = upd.add_subparsers(dest="update_command", required=True)
@@ -422,7 +432,8 @@ def cmd_update_apply(args: argparse.Namespace) -> int:
 
 
 def _maybe_auto_check(args: argparse.Namespace) -> None:
-    if getattr(args, "command", None) not in ("chat", "agent", "gui"):
+    cmd = getattr(args, "command", None)
+    if cmd is not None and cmd not in ("chat", "agent", "gui", "serve"):
         return
     try:
         from agentrouter.update import maybe_auto_check
@@ -439,8 +450,19 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     func = getattr(args, "func", None)
     if func is None:
-        print("agentrouter: no command given. Use --help.", file=sys.stderr)
-        return 2
+        command = getattr(args, "command", None)
+        gui_command = getattr(args, "gui_command", None)
+        if command is None or (command == "gui" and gui_command is None):
+            if getattr(args, "host", None) is None:
+                args.host = "127.0.0.1"
+            if getattr(args, "port", None) is None:
+                args.port = 8787
+            if not hasattr(args, "open"):
+                args.open = False
+            func = cmd_gui_serve
+        else:
+            print("agentrouter: no command given. Use --help.", file=sys.stderr)
+            return 2
     _maybe_auto_check(args)
     try:
         return int(func(args))

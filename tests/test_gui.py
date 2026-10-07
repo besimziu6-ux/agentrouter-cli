@@ -294,3 +294,103 @@ def test_installer_smoke():
     assert "python3 -m venv" in text
     assert "ln -sf" in text
     assert "agentrouter" in text
+
+
+def test_no_arg_main_launches_serve_defaults():
+    from agentrouter import cli as cli_mod
+
+    with patch("agentrouter.gui_server.serve") as mock_serve:
+        with patch.object(cli_mod, "_maybe_auto_check", return_value=None):
+            rc = cli_mod.main([])
+    assert rc == 0
+    mock_serve.assert_called_once_with(8787, "127.0.0.1")
+
+
+def test_parser_serve_alias_flags():
+    parser = build_parser()
+    args = parser.parse_args(["serve", "--port", "9000", "--host", "0.0.0.0", "--open"])
+    assert args.port == 9000
+    assert args.host == "0.0.0.0"
+    assert args.open is True
+    assert callable(getattr(args, "func", None))
+
+
+def test_parser_serve_alias_defaults():
+    parser = build_parser()
+    args = parser.parse_args(["serve"])
+    assert args.port == 8787
+    assert args.host == "127.0.0.1"
+    assert args.open is False
+    assert callable(getattr(args, "func", None))
+
+
+def test_parser_bare_gui_defaults_to_serve():
+    from agentrouter.cli import cmd_gui_serve
+
+    parser = build_parser()
+    args = parser.parse_args(["gui"])
+    assert args.gui_command is None
+    assert args.port == 8787
+    assert args.host == "127.0.0.1"
+    assert args.open is False
+    assert getattr(args, "func", None) == cmd_gui_serve
+
+
+def test_api_health_returns_ok():
+    fake = _fake_config()
+    with patch("agentrouter.gui_server.load_config", return_value=fake):
+        server, thread, base = _start_server()
+        try:
+            status, headers, body = _get(base, "/api/health")
+        finally:
+            _stop_server(server, thread)
+    assert status == 200
+    assert headers.get_content_type() == "application/json"
+    assert json.loads(body.decode("utf-8")) == {"status": "ok"}
+
+
+def test_favicon_returns_204():
+    fake = _fake_config()
+    with patch("agentrouter.gui_server.load_config", return_value=fake):
+        server, thread, base = _start_server()
+        try:
+            status, _, body = _get(base, "/favicon.ico")
+        finally:
+            _stop_server(server, thread)
+    assert status == 204
+    assert body == b""
+
+
+def test_api_unknown_returns_404_json():
+    fake = _fake_config()
+    with patch("agentrouter.gui_server.load_config", return_value=fake):
+        server, thread, base = _start_server()
+        try:
+            status, headers, body = _get(base, "/api/nope")
+        finally:
+            _stop_server(server, thread)
+    assert status == 404
+    assert headers.get_content_type() == "application/json"
+    data = json.loads(body.decode("utf-8"))
+    assert data["error"] == "not found"
+    assert data["path"] == "/api/nope"
+
+
+def test_frontend_chatgpt_markers_no_cdn():
+    assert "New chat" in GUI_HTML
+    assert 'id="composer"' in GUI_HTML
+    assert "<textarea" in GUI_HTML
+    assert "Enter" in GUI_HTML
+    assert "data-copy" in GUI_HTML
+    assert "Copy" in GUI_HTML
+    assert "toolCard" in GUI_HTML
+    assert "Step " in GUI_HTML
+    assert "Tool " in GUI_HTML
+    assert "statusDot" in GUI_HTML
+    assert "toast" in GUI_HTML
+    assert "localStorage" in GUI_HTML
+    assert "ar-theme" in GUI_HTML
+    assert "data-theme" in GUI_HTML
+    assert 'src="http' not in GUI_HTML
+    assert 'href="http' not in GUI_HTML
+    assert "<script src" not in GUI_HTML
