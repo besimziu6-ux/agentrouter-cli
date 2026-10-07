@@ -102,6 +102,7 @@ Sessions are stored as JSONL under `~/.config/agentrouter/sessions/`.
 ## GUI
 
 Local browser UI built on stdlib `http.server` (no new dependencies, reuses `requests` only).
+Frontend ships as packaged static files under `src/agentrouter/static/` (no CDN, no third-party code).
 
 Bare `agentrouter` launches the GUI (same as `serve`):
 
@@ -115,26 +116,63 @@ agentrouter gui serve --host 127.0.0.1 --port 8787 --no-open
 
 Open `http://127.0.0.1:8787` for chat, agent timeline, sessions, and config views.
 
-Tabs/modes:
+Layout (instrument-grade shell):
 
-- Chat: streaming markdown with code Copy buttons, Enter to send / Shift+Enter newline.
-- Agent: Codex-style step and tool cards streaming from `/api/agent`.
-- Sessions: search and load prior sessions from the sidebar.
-- Config: set API key and default model, Test connection via `/api/models`.
+- Rail (`aside#rail`): session list with search/filter, rename (inline), delete (with confirm), preview, load-to-chat, New chat, theme + settings entry.
+- Stage (`main#stage`): conversation (`role="log"`), chat/agent mode switch, empty states, suggestion chips, docked composer.
+- Inspector (`aside#inspector`): per-run detail — agent step/tool cards, reasoning lane, token usage, elapsed time.
+- Transport (`#transport`): run controls — stop/rerun/resume, step count, elapsed odometer, progress meter.
+- Command palette (`Ctrl+K`): fuzzy actions (new chat, go to mode, shortcuts list, theme cycle).
+- Toasts (`#toasts`, `aria-live="polite"`): one polite announcer, swipe-to-dismiss, slow-end progress trip.
+
+Chat: streaming markdown with code Copy buttons, Enter to send / Shift+Enter newline.
+Agent: step and tool cards streaming from `/api/agent`, with stop/rerun/resume via transport.
+Sessions: search, preview, rename, delete, load prior sessions from the rail.
+Config: set API key and default model, Test connection via `/api/models`.
+Settings panel: theme (`dark` / `light` / `os`), density (`comfortable` / `compact`), font scale (85-130%), motion (see below).
+
+Motion settings (`ar-motion` in `localStorage`, Settings panel):
+
+- `full`: 120/200/320ms transform/opacity-only transitions, spring easing (guarded `linear()` curve with cubic-bezier fallback).
+- `reduced`: shell chrome limited to opacity-only 100ms; reveals, crossfades, and odometers apply instantly.
+- `off`: all transitions and animations none.
+- Defaults follow `prefers-reduced-motion` when nothing is stored. Meter canvas and LED/caret animations pause when the tab is hidden.
+
+Perf HUD: append `?perf=1` to the URL (or press `Ctrl+Shift+P`) to toggle a fixed overlay showing `fps | frame ms | long tasks | dom nodes | stream lag ms`.
 
 Endpoints:
 
 | Method | Path | Description |
 |---|---|---|
 | GET | `/` | HTML frontend (`text/html`, title `AgentRouter`) |
+| GET | `/static/*` | Packaged static files (allowlisted suffixes, MIME, ETag + `If-None-Match` 304, traversal blocked, `Cache-Control: no-cache`) |
 | GET | `/api/health` | Health check (`{"status":"ok"}`) |
+| GET | `/api/version` | CLI version (`{"version": "0.3.0"}`) |
 | GET | `/api/models` | List models via `AgentRouterClient` |
-| POST | `/api/chat` | Chat relay, SSE `data:` lines + `data: [DONE]` |
+| POST | `/api/chat` | Chat relay, SSE `data:` lines + `data: [DONE]` (relays `content`, `reasoning`, `usage`) |
 | POST | `/api/agent` | Agent relay, SSE step/tool/done events |
 | GET | `/api/sessions` | List session ids |
 | GET | `/api/sessions/{id}` | Load one session |
+| PATCH | `/api/sessions/{id}` | Rename session (`{"title": "..."}`) |
+| DELETE | `/api/sessions/{id}` | Delete session |
 | GET | `/api/config` | Masked config (`base_url`, `has_key`, `default_model`) |
 | POST | `/api/config` | Update `api_key` / `default_model` / `base_url` |
+
+Optional token auth: set `AGENTROUTER_GUI_TOKEN` (or pass a token to `create_server`). When set, every `/api/*` request must carry `X-AgentRouter-Token`; otherwise all API routes stay open.
+
+Keyboard shortcuts:
+
+| Keys | Action |
+|---|---|
+| `Enter` / `Shift+Enter` | Send / newline in composer |
+| `Ctrl+K` (or `Cmd+K`) | Open command palette |
+| `/` | Focus composer input |
+| `?` | Show shortcuts |
+| `Ctrl+Shift+P` | Toggle perf HUD |
+| `Esc` | Close palette / picker / dialog |
+| `Up` / `Down`, `Enter` | Navigate / confirm in palette and model picker (`Home` / `End` jump in picker) |
+
+Offline behavior: the shell (HTML/CSS/JS) is served locally, so the UI itself loads with no network. API calls fail soft: model list falls back to empty, chat/agent streams surface an error toast and keep the draft, session preview/rename/delete show a failure toast, Test connection reports unreachable, and the 24h update checker never blocks on network failure. Drafts persist across mode switches.
 
 SSE example:
 
@@ -142,6 +180,13 @@ SSE example:
 curl -N -H 'Content-Type: application/json' \
   -d '{"model":"<model-id>","messages":[{"role":"user","content":"hi"}]}' \
   http://127.0.0.1:8787/api/chat
+```
+
+Version check:
+
+```bash
+curl http://127.0.0.1:8787/api/version
+agentrouter --version
 ```
 
 AgentRouter-only applies here too: any `base_url` other than `https://agentrouter.org/v1` returns `400`.

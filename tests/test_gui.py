@@ -394,3 +394,310 @@ def test_frontend_chatgpt_markers_no_cdn():
     assert 'src="http' not in GUI_HTML
     assert 'href="http' not in GUI_HTML
     assert "<script src" not in GUI_HTML
+
+
+def _get_with_headers(base, path, headers=None):
+    req = urllib.request.Request(base + path, headers=headers or {}, method="GET")
+    try:
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            return resp.status, resp.headers, resp.read()
+    except urllib.error.HTTPError as exc:
+        return exc.code, exc.headers, exc.read()
+
+
+def _start_server_with_token(token):
+    server = create_server("127.0.0.1", 0, token)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base = f"http://127.0.0.1:{server.server_address[1]}"
+    return server, thread, base
+
+
+def test_static_index_served_with_mime():
+    import os
+
+    with patch.dict(os.environ, {"AGENTROUTER_GUI_TOKEN": ""}, clear=False):
+        server, thread, base = _start_server()
+        try:
+            status, headers, body = _get(base, "/static/index.html")
+            assert status == 200
+            assert "text/html" in headers.get_content_type()
+            assert b"AgentRouter" in body
+            status_css, h_css, _ = _get(base, "/static/css/tokens.css")
+            assert status_css == 200
+            assert h_css.get_content_type() == "text/css"
+            status_js, h_js, _ = _get(base, "/static/js/main.js")
+            assert status_js == 200
+            ctype = h_js.get("Content-Type", "")
+            assert "javascript" in ctype
+        finally:
+            _stop_server(server, thread)
+
+
+def test_static_etag_304():
+    server, thread, base = _start_server()
+    try:
+        status, headers, _ = _get(base, "/static/css/tokens.css")
+        assert status == 200
+        etag = headers.get("ETag")
+        assert etag
+        assert headers.get("Cache-Control") == "no-cache"
+        status2, _, _ = _get_with_headers(base, "/static/css/tokens.css", {"If-None-Match": etag})
+        assert status2 == 304
+    finally:
+        _stop_server(server, thread)
+
+
+def test_static_traversal_blocked_and_unknown_404():
+    server, thread, base = _start_server()
+    try:
+        for p in (
+            "/static/../gui_server.py",
+            "/static/%2e%2e/gui_server.py",
+            "/static/css/../../gui_html.py",
+            "/static/nope.css",
+            "/static/js/unknown.js",
+            "/static/file.txt",
+        ):
+            status, _, _ = _get(base, p)
+            assert status == 404, p
+    finally:
+        _stop_server(server, thread)
+
+
+def test_api_version_returns_version():
+    from agentrouter import __version__ as ver
+
+    server, thread, base = _start_server()
+    try:
+        status, headers, body = _get(base, "/api/version")
+    finally:
+        _stop_server(server, thread)
+    assert status == 200
+    assert headers.get_content_type() == "application/json"
+    assert json.loads(body.decode("utf-8")) == {"version": ver}
+
+
+def test_chat_reasoning_usage_relay():
+    import io
+
+    from agentrouter.gui_server import GuiHandler
+
+    fake = _fake_config()
+
+    def _rchunk():
+        return {"choices": [{"delta": {"content": "Hi", "reasoning_content": "thinking"}}]}
+
+    class FakeStream:
+        status_code = 200
+
+        def iter_lines(self, decode_unicode=True):
+            yield "data: " + json.dumps(_rchunk())
+            yield "data: " + json.dumps({"usage": {"prompt_tokens": 1, "completion_tokens": 2}})
+            yield "data: [DONE]"
+
+        def close(self):
+            pass
+
+        @property
+        def text(self):
+            return ""
+
+    body_bytes = json.dumps({"model": "m1", "messages": [{"role": "user", "content": "hi"}]}).encode()
+    handler = GuiHandler.__new__(GuiHandler)
+    handler.headers = {"Content-Length": str(len(body_bytes))}
+    handler.rfile = io.BytesIO(body_bytes)
+    handler.wfile = io.BytesIO()
+    handler._status = None
+    handler._headers = {}
+
+    def _send_response(code, message=None):
+        handler._status = code
+
+    def _send_header(key, value):
+        handler._headers[key] = value
+
+    handler.send_response = _send_response  # type: ignore[method-assign]
+    handler.send_header = _send_header  # type: ignore[method-assign]
+    handler.end_headers = lambda: None  # type: ignore[method-assign]
+    handler._cors = lambda: None  # type: ignore[method-assign]
+
+    with patch("agentrouter.gui_server.load_config", return_value=fake):
+        with patch("agentrouter.gui_server.requests.post", return_value=FakeStream()):
+            handler._handle_chat()
+    assert handler._status == 200
+    text = handler.wfile.getvalue().decode("utf-8")
+    assert "data: [DONE]" in text
+    assert '"reasoning"' in text
+    assert "thinking" in text
+    assert '"usage"' in text
+    assert '"content"' in text
+
+
+def test_token_off_default_allows():
+    import os
+
+    with patch.dict(os.environ, {}, clear=False):
+        os.environ.pop("AGENTROUTER_GUI_TOKEN", None)
+        server, thread, base = _start_server_with_token(None)
+        try:
+            status, _, _ = _get(base, "/api/health")
+        finally:
+            _stop_server(server, thread)
+    assert status == 200
+
+
+def test_token_on_enforced():
+    server, thread, base = _start_server_with_token("s3cret")
+    try:
+        status_no, _, _ = _get(base, "/api/health")
+        assert status_no == 401
+        status_ok, _, body = _get_with_headers(base, "/api/health", {"X-AgentRouter-Token": "s3cret"})
+        assert status_ok == 200
+        assert b"ok" in body
+        status_bad, _, _ = _get_with_headers(base, "/api/health", {"X-AgentRouter-Token": "wrong"})
+        assert status_bad == 401
+    finally:
+        _stop_server(server, thread)
+
+
+def test_frontend_files_no_http_src_href():
+    import re
+
+    root = pathlib.Path(__file__).resolve().parent.parent / "src" / "agentrouter" / "static"
+    assert root.exists()
+    pat_src = re.compile(r'\ssrc\s*=\s*["\']https?://', re.IGNORECASE)
+    pat_href = re.compile(r'\shref\s*=\s*["\']https?://', re.IGNORECASE)
+    pat_import = re.compile(r"@import\s+[^;]*https?://", re.IGNORECASE)
+    pat_url = re.compile(r"url\s*\(\s*['\"]?https?://", re.IGNORECASE)
+    for p in root.rglob("*"):
+        if not p.is_file() or p.suffix == ".test.js":
+            continue
+        if p.suffix not in (".html", ".css", ".js", ".json", ".svg"):
+            continue
+        text = p.read_text(encoding="utf-8", errors="replace")
+        assert not pat_src.search(text), f"http src in {p}"
+        assert not pat_href.search(text), f"http href in {p}"
+        assert not pat_import.search(text), f"http @import in {p}"
+        assert not pat_url.search(text), f"http url() in {p}"
+
+
+def test_static_total_size_under_budget():
+    root = pathlib.Path(__file__).resolve().parent.parent / "src" / "agentrouter" / "static"
+    total = sum(p.stat().st_size for p in root.rglob("*") if p.is_file() and not p.name.endswith(".test.js"))
+    assert total < 192 * 1024, f"shipped static total {total} exceeds 192KB"
+
+
+def test_js_unit_tests_via_node():
+    import shutil
+
+    node = shutil.which("node")
+    if not node:
+        import pytest as _pytest
+
+        _pytest.skip("node not available")
+    root = pathlib.Path(__file__).resolve().parent.parent / "src" / "agentrouter" / "static" / "js"
+    cases = sorted(str(p) for p in root.glob("*.test.js"))
+    assert cases, "no js tests found"
+    result = subprocess.run([node, "--test"] + cases, capture_output=True, text=True, timeout=60)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def _static_root():
+    return pathlib.Path(__file__).resolve().parent.parent / "src" / "agentrouter" / "static"
+
+
+def _read_index():
+    return (_static_root() / "index.html").read_text(encoding="utf-8")
+
+
+def test_shell_mounts_theme_boot_token_placeholder():
+    text = _read_index()
+    for mount in ('id="rail"', 'id="stage"', 'id="inspector"', 'id="transport"', 'id="toasts"'):
+        assert mount in text, mount
+    assert "skel" in text
+    assert "ar-token" in text
+    assert "ar-theme" in text
+    assert "localStorage" in text
+    assert "data-theme" in text
+    assert "data-motion" in text
+
+
+def test_static_shell_files_served_with_mime():
+    server, thread, base = _start_server()
+    try:
+        for path, needle in (
+            ("/static/js/rail.js", "filterSessions"),
+            ("/static/js/transport.js", "formatElapsed"),
+            ("/static/js/inspector.js", "initInspector"),
+            ("/static/js/palette.js", "filterPalette"),
+            ("/static/js/popover.js", "openPopover"),
+            ("/static/js/dialog.js", "openDialog"),
+            ("/static/js/toast.js", "showToast"),
+            ("/static/js/settings.js", "applySettings"),
+            ("/static/css/shell.css", "#rail"),
+        ):
+            status, headers, body = _get(base, path)
+            assert status == 200, path
+            ctype = headers.get("Content-Type", "")
+            if path.endswith(".js"):
+                assert "javascript" in ctype, path
+            else:
+                assert "text/css" in ctype, path
+            assert needle in body.decode("utf-8"), path
+    finally:
+        _stop_server(server, thread)
+
+
+def test_token_meta_injected_when_set():
+    import os
+
+    server, thread, base = _start_server_with_token("s3cret")
+    try:
+        status, _, body = _get(base, "/")
+        assert status == 200
+        text = body.decode("utf-8")
+        assert 'name="ar-token"' in text
+        assert "s3cret" in text
+    finally:
+        _stop_server(server, thread)
+    with patch.dict(os.environ, {"AGENTROUTER_GUI_TOKEN": ""}, clear=False):
+        server2, thread2, base2 = _start_server()
+        try:
+            status2, _, body2 = _get(base2, "/")
+            assert status2 == 200
+            assert 'content=""' in body2.decode("utf-8")
+        finally:
+            _stop_server(server2, thread2)
+
+
+def test_shell_css_no_banned_effects_or_emoji():
+    for name in ("shell.css", "base.css", "components.css", "motion.css", "tokens.css"):
+        text = (_static_root() / "css" / name).read_text(encoding="utf-8")
+        low = text.lower()
+        assert "backdrop-filter" not in low, name
+        assert "linear-gradient" not in low, name
+        assert "radial-gradient" not in low, name
+    for p in _static_root().rglob("*"):
+        if not p.is_file():
+            continue
+        if p.suffix not in (".html", ".css", ".js"):
+            continue
+        if p.suffix == ".js" and p.name.endswith(".test.js"):
+            continue
+        text = p.read_text(encoding="utf-8", errors="replace")
+        for ch in ("😀", "✨", "🚀", "🔑"):
+            assert ch not in text, f"emoji in {p.name}"
+
+
+def test_shell_js_no_dom_at_import():
+    import re
+
+    pure = ("settings.js", "palette.js", "transport.js", "rail.js", "toast.js", "popover.js", "store.js")
+    for name in pure:
+        text = (_static_root() / "js" / name).read_text(encoding="utf-8")
+        lines = text.splitlines()
+        top = "\n".join(lines[:12])
+        assert "document." not in top or "typeof document" in text, name
+        assert re.search(r"^\s*document\.", top, re.M) is None, name
+        assert re.search(r"^\s*window\.", top, re.M) is None, name

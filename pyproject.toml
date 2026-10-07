@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agentrouter-cli"
-version = "0.2.0"
+version = "0.3.0"
 description = "CLI for AgentRouter - chat, models, and autonomous agent with tools"
 readme = "README.md"
 license = { text = "MIT" }
@@ -41,6 +41,41 @@ Issues = "https://github.com/besimziu6-ux/agentrouter-cli/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+# Explicit runtime set: JS unit-test files stay in the repo for node --test
+# but must not ship (see tests/test_gui.py shipped-size test).
+agentrouter = [
+  "static/index.html",
+  "static/css/*.css",
+  "static/js/package.json",
+  "static/js/api.js",
+  "static/js/chat.js",
+  "static/js/composer.js",
+  "static/js/dialog.js",
+  "static/js/diff.js",
+  "static/js/frame.js",
+  "static/js/highlight.js",
+  "static/js/inspector.js",
+  "static/js/main.js",
+  "static/js/markdown.js",
+  "static/js/messages.js",
+  "static/js/meter.js",
+  "static/js/motion.js",
+  "static/js/odometer.js",
+  "static/js/pacer.js",
+  "static/js/palette.js",
+  "static/js/perf-hud.js",
+  "static/js/popover.js",
+  "static/js/rail.js",
+  "static/js/sessions.js",
+  "static/js/config.js",
+  "static/js/settings.js",
+  "static/js/store.js",
+  "static/js/timeline.js",
+  "static/js/toast.js",
+  "static/js/transport.js",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

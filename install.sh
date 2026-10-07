@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-INSTALLER_VERSION="0.2.0"
+INSTALLER_VERSION="0.3.0"
 REPO="${AGENTROUTER_REPO:-https://github.com/besimziu6-ux/agentrouter-cli}"
 VERSION="${AGENTROUTER_VERSION:-main}"
 VENV_DIR="${AGENTROUTER_VENV:-$HOME/.local/share/agentrouter/venv}"
