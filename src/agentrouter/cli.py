@@ -31,6 +31,8 @@ def _add_serve_args(p: argparse.ArgumentParser) -> None:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="agentrouter", description="CLI for AgentRouter")
     p.add_argument("--version", action="store_true", help="Print version and exit")
+    p.add_argument("--update", action="store_true", help="Upgrade to latest version (same as update apply)")
+    p.add_argument("--upgrade", action="store_true", help="Alias for --update")
     sub = p.add_subparsers(dest="command")
 
     cfg = sub.add_parser("config", help="Manage local configuration")
@@ -448,6 +450,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.version:
         print(__version__)
         return 0
+    if getattr(args, "update", False) or getattr(args, "upgrade", False):
+        from agentrouter.update import cmd_update_apply as _apply
+
+        return int(_apply(args))
     func = getattr(args, "func", None)
     if func is None:
         command = getattr(args, "command", None)
