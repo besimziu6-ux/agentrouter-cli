@@ -701,3 +701,34 @@ def test_shell_js_no_dom_at_import():
         assert "document." not in top or "typeof document" in text, name
         assert re.search(r"^\s*document\.", top, re.M) is None, name
         assert re.search(r"^\s*window\.", top, re.M) is None, name
+
+
+def test_gui_fits_inside_window():
+    css = (_static_root() / "css" / "shell.css").read_text(encoding="utf-8")
+    chat = (_static_root() / "css" / "chat.css").read_text(encoding="utf-8")
+
+    def rule_block(text, selector):
+        start = text.find(selector + "{")
+        assert start >= 0, f"missing rule {selector}"
+        end = text.find("}", start)
+        assert end > start, f"unterminated rule {selector}"
+        return text[start:end]
+
+    shell = rule_block(css, "#shell")
+    assert "100dvh" in shell, "shell must be bounded to viewport height"
+    assert "overflow:hidden" in shell.replace(" ", ""), "shell must clip page-level overflow"
+
+    stage = rule_block(css, "#stage")
+    assert "overflow-y:auto" in stage.replace(" ", ""), "stage must scroll internally"
+
+    composer = rule_block(css, "#composer")
+    assert "min-width:0" in composer.replace(" ", ""), "composer must shrink in flex row"
+
+    meta = rule_block(css, ".transport-meta")
+    assert "flex-wrap:wrap" in meta.replace(" ", ""), "transport meta must wrap on narrow windows"
+
+    insp = rule_block(css, "#inspector")
+    assert "overflow-y:auto" in insp.replace(" ", ""), "inspector must scroll internally"
+
+    msg = rule_block(chat, ".msg")
+    assert "min-width:0" in msg.replace(" ", ""), "message rows must not force grid blowout"
