@@ -732,3 +732,34 @@ def test_gui_fits_inside_window():
 
     msg = rule_block(chat, ".msg")
     assert "min-width:0" in msg.replace(" ", ""), "message rows must not force grid blowout"
+
+
+def test_gui_panels_toggle_and_fit():
+    shell = (_static_root() / "css" / "shell.css").read_text(encoding="utf-8")
+    base = (_static_root() / "css" / "base.css").read_text(encoding="utf-8")
+    nospace = shell.replace(" ", "")
+
+    def rule_block(text, selector):
+        start = text.find(selector + "{")
+        assert start >= 0, f"missing rule {selector}"
+        end = text.find("}", start)
+        assert end > start, f"unterminated rule {selector}"
+        return text[start:end]
+
+    grid = rule_block(shell, "#shell")
+    assert "grid-template-columns:auto" in grid.replace(" ", ""), \
+        "shell tracks must be auto so collapsing rail/inspector frees space"
+    assert "#rail{width:260px" in nospace, "rail must own its width for collapse to work"
+    assert "#inspector{width:300px" in nospace, "inspector must own its width"
+    banner = rule_block(shell, ".banner")
+    assert "position:fixed" in banner.replace(" ", ""), \
+        "offline banner must overlay, never grow the page"
+    start = base.find("\nbody{")
+    assert start >= 0, "missing body rule"
+    body = base[start:start + base.find("}", start) - start]
+    assert "overflow:hidden" in body.replace(" ", ""), \
+        "page itself must not scroll; panels scroll internally"
+
+    main_js = (_static_root() / "js" / "main.js").read_text(encoding="utf-8")
+    assert main_js.count('getElementById("inspectorToggle")') <= 1, \
+        "inspector toggle must be bound once (double bind cancels itself out)"

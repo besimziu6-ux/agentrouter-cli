@@ -1,6 +1,6 @@
 *{box-sizing:border-box}
 html,body{height:100%}
-body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.5}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.5;overflow:hidden;overscroll-behavior:none}
 :focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 button{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:.45rem .8rem;cursor:pointer;min-height:40px;min-width:40px}
 button.pri{background:var(--acc);color:var(--acc-fg);border-color:transparent}

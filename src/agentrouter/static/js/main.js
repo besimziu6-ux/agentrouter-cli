@@ -207,14 +207,6 @@ function boot() {
   } catch { /* ignore */ }
 
   try {
-    const t = document.getElementById("inspectorToggle");
-    if (t && typeof toggleInspector === "function") {
-      const cur = t.onclick;
-      if (!cur) t.onclick = () => toggleInspector();
-    }
-  } catch { /* ignore */ }
-
-  try {
     if (typeof IntersectionObserver !== "undefined") {
       const stage = document.getElementById("stage");
       if (stage) {
