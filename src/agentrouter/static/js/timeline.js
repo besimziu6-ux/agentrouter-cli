@@ -108,7 +108,7 @@ export function initTimeline(opts) {
       rb.classList.toggle("is-stop", !!busy);
       rb.setAttribute("aria-label", busy ? "Stop" : "Send");
       const l = rb.querySelector(".send-lbl");
-      if (l) l.textContent = busy ? "Stop" : "Send";
+      if (l) l.textContent = busy ? "■" : "↑";
     }
     if (sb) sb.hidden = !busy;
   };

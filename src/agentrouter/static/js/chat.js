@@ -165,17 +165,11 @@ export function initChat(opts) {
     if (msgApi.count() > 0) { emptyBox.hidden = true; return; }
     emptyBox.hidden = false;
     emptyBox.textContent = "";
-    const rows = [
-      ["empty-model", "model: " + (currentModel(store) || "no model selected")],
-      ["empty-endpoint", "endpoint: " + (endpoint || "agentrouter.org")],
-      ["empty-keys", "Enter sends · Shift+Enter newline · Ctrl+K palette"],
-    ];
-    for (const [cls, text] of rows) {
-      const e = document.createElement("div");
-      e.className = cls;
-      e.textContent = text;
-      emptyBox.appendChild(e);
-    }
+    const hh=document.createElement("h2");hh.textContent="How can I help you today?";emptyBox.appendChild(hh);
+    const mm=document.createElement("div");mm.className="mut";mm.textContent="model: "+(currentModel(store)||"no model selected");emptyBox.appendChild(mm);
+    const cc=document.createElement("div");cc.className="chips";
+    for(const s of["Explain recursion","List models"]){const b=document.createElement("button");b.type="button";b.setAttribute("data-s",s);b.textContent=s;b.addEventListener("click",()=>{try{box.value=s;box.focus()}catch{}});cc.appendChild(b)}
+    emptyBox.appendChild(cc);
   });
 
   ok(() => {

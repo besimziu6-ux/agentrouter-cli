@@ -3,7 +3,13 @@ import { motionOK, crossfade, flip } from "./motion.js";
 import { showToast } from "./toast.js";
 import { openDialog, closeDialog } from "./dialog.js";
 import { apiFetch } from "./api.js";
-
+export function groupSessions(l,n){
+const t=typeof n=="number"?n:Date.now(),d=new Date(t);d.setHours(0,0,0,0);const o=d.getTime(),e=864e5;
+const g=[["Today",[]],["Yesterday",[]],["Previous 7 Days",[]],["Older",[]]];
+const u=s=>{const v=s&&(s.updatedAt||s.mtime||s.ts);const q=typeof v=="number"?v:Date.parse(v);return Number.isFinite(q)?q:0};
+for(const s of(Array.isArray(l)?l:[])){const a=u(s);g[a>=o?0:a>=o-e?1:a>=o-7*e?2:3][1].push(s)}
+return g.filter(x=>x[1].length);
+}
 export function h(tag, cls, text) {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
@@ -229,9 +235,11 @@ export function initSessions(opts) {
     });
     const ren = btn("Rename", "ses-act ses-ren", (e) => { e.stopPropagation(); startRename(s, b); });
     ren.setAttribute("aria-label", "Rename " + id);
+    const pin = btn("Pin", "ses-act", (e) => { e.stopPropagation(); try{li.classList.toggle("pinned")}catch{} });
+    pin.setAttribute("aria-label", "Pin " + id);
     const del = btn("Del", "ses-act ses-del", (e) => { e.stopPropagation(); doDelete(id, li); });
     del.setAttribute("aria-label", "Delete " + id);
-    wrap.append(b, ren, del);
+    wrap.append(b, ren, pin, del);
     li.appendChild(wrap);
     let sx = null;
     let dx = 0;
@@ -290,7 +298,11 @@ export function initSessions(opts) {
         listEl.appendChild(h("li", "skel ses-empty", sessions.length ? "No matches" : "No sessions yet"));
         return;
       }
-      for (const s of view.slice(0, 60)) listEl.appendChild(buildRow(s));
+      const groups=groupSessions(view);let n=0;
+      for(const [label,items] of groups){
+        if(groups.length>1)listEl.appendChild(h("li","ses-group",label));
+        for(const s of items){if(n++>=60)break;listEl.appendChild(buildRow(s))}if(n>=60)break;
+      }
     } catch { /* ignore */ }
   };
   const paint = (animated) => {

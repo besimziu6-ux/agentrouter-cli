@@ -1,11 +1,10 @@
 .dot{width:9px;height:9px;border-radius:50%;background:#9ca3af;display:inline-block;flex:0 0 9px}
 .dot.ok{background:var(--ok)}.dot.bad{background:var(--err)}.dot.warn{background:var(--warn)}
 .toolCard{border:1px solid var(--line);border-radius:var(--radius);background:var(--card);overflow:hidden}
-.toolCard summary{cursor:pointer;padding:.5rem .7rem;display:flex;gap:.5rem;align-items:center}
-.toolCard pre{background:var(--code);border-radius:8px;padding:.5rem;overflow:auto}
-.ubub{background:var(--bub);border-radius:14px;padding:.5rem .8rem;max-width:85%;white-space:pre-wrap;word-break:break-word}
+.ubub{background:var(--bub);border-radius:20px;padding:.6rem .9rem;max-width:75%;white-space:pre-wrap;word-break:break-word}
 .chips{display:flex;gap:.5rem;flex-wrap:wrap}
-.chips button{border-radius:999px}
+.chips button{border-radius:999px;background:var(--card)}
 #empty{text-align:center;padding:2rem 1rem;display:grid;gap:1rem;justify-items:center}
-#sesList{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.25rem}
-#sesList li{padding:.5rem .6rem;border:1px solid transparent;border-radius:8px}
+#empty h2{font-size:1.55rem;margin:0}
+#emptyModel{font-size:.85rem}
+#empty .chips{justify-content:center}

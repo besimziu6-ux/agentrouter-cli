@@ -173,7 +173,7 @@ export function initComposer(opts) {
         runBtn.classList.toggle("is-stop", !!isRunning);
         runBtn.setAttribute("aria-label", isRunning ? "Stop" : "Send");
         const lbl = runBtn.querySelector(".send-lbl");
-        if (lbl) lbl.textContent = isRunning ? "Stop" : "Send";
+        if (lbl) lbl.textContent = isRunning ? "■" : "↑";
       }
       if (stopBtn) stopBtn.hidden = !isRunning;
       if (row) row.classList.toggle("sending", !!isRunning);

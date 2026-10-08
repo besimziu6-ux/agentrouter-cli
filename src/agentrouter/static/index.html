@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark" data-motion="full" data-density="comfortable">
+<html lang="en" data-theme="light" data-motion="full" data-density="comfortable">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="/static/css/agent.css">
 <link rel="stylesheet" href="/static/css/shell.css">
 <script>
-try{var __t=null;try{__t=localStorage.getItem("ar-theme")}catch(e){}if(!__t)__t="dark";if(__t==="os"){try{__t=matchMedia("(prefers-color-scheme: light)").matches?"light":"dark"}catch(e){__t="dark"}}document.documentElement.setAttribute("data-theme",__t);var __m=null;try{__m=localStorage.getItem("ar-motion")}catch(e){}if(!__m){try{__m=matchMedia("(prefers-reduced-motion: reduce)").matches?"reduced":"full"}catch(e){__m="full"}}document.documentElement.setAttribute("data-motion",__m||"full");var __d=null;try{__d=localStorage.getItem("ar-density")}catch(e){}document.documentElement.setAttribute("data-density",__d||"comfortable")}catch(e){}
+try{var __t=null;try{__t=localStorage.getItem("ar-theme")}catch(e){}if(!__t)__t="light";if(__t==="os"){try{__t=matchMedia("(prefers-color-scheme: light)").matches?"light":"dark"}catch(e){__t="light"}}document.documentElement.setAttribute("data-theme",__t);var __m=null;try{__m=localStorage.getItem("ar-motion")}catch(e){}if(!__m){try{__m=matchMedia("(prefers-reduced-motion: reduce)").matches?"reduced":"full"}catch(e){__m="full"}}document.documentElement.setAttribute("data-motion",__m||"full");var __d=null;try{__d=localStorage.getItem("ar-density")}catch(e){}document.documentElement.setAttribute("data-density",__d||"comfortable")}catch(e){}
 </script>
 </head>
 <body>
@@ -21,76 +21,20 @@ try{var __t=null;try{__t=localStorage.getItem("ar-theme")}catch(e){}if(!__t)__t=
 <div id="shell">
 <aside id="rail" aria-label="Sessions">
 <div class="rail-inner">
-<div class="rail-head">
-<button id="newChat">+ New chat</button>
-<button id="railToggle" aria-label="Collapse sessions" aria-expanded="true">&lt;</button>
-</div>
-<div class="rail-search"><input id="sesSearch" type="search" placeholder="Search sessions..." aria-label="Search sessions"></div>
-<ul id="sesList" aria-label="Session list">
-<li class="skel ses-empty">No sessions yet</li>
-</ul>
-<div class="rail-foot">
-<span id="keyLed" class="dot warn" role="status" aria-label="API key status"></span>
-<span id="railVer" class="mut">v-</span>
-<button id="configBtn">Config</button>
-<button id="themeBtn">Light</button>
-</div>
+<div class="ws"><span class="ws-mark" aria-hidden="true">A</span><span class="ws-name">AgentRouter</span><button id="railToggle" aria-label="Collapse sessions" aria-expanded="true">‹</button></div>
+<div class="rail-head"><button id="newChat" class="pri">+ New chat</button></div>
+<div class="rail-search"><input id="sesSearch" type="search" placeholder="Search chats..." aria-label="Search sessions"></div>
+<ul id="sesList" aria-label="Session list"><li class="skel ses-empty">No sessions yet</li></ul>
+<div class="rail-foot"><span id="keyLed" class="dot warn" role="status" aria-label="API key status"></span><span id="railVer" class="mut">v-</span><button id="configBtn" title="Settings" aria-label="Settings">⚙</button><button id="themeBtn">Light</button></div>
 </div>
 </aside>
 <div id="scrim" hidden></div>
 <div id="center">
-<main id="stage" aria-label="Conversation">
-<div id="conv" role="log" aria-label="Conversation"><div class="skel skel-line"></div><div class="skel skel-line short"></div></div>
-<div id="empty">
-<h2>What can I help with?</h2>
-<div class="chips">
-<button data-s="Explain recursion">Explain recursion</button>
-<button data-s="List models">List models</button>
+<header id="topbar"><button id="railOpenBtn" class="only-mobile" aria-label="Open sessions">☰</button><button id="modelBtn" aria-haspopup="listbox" aria-expanded="false">Select model</button><span id="modelName" class="mut">model: -</span><span id="statusDot" class="dot warn" role="status" aria-label="Connection status"></span><span class="top-sp"></span><button id="topNew" aria-label="New chat" onclick="document.getElementById('newChat').click()">+</button><button id="inspectorToggle" aria-expanded="true">Hide panel</button></header>
+<main id="stage" aria-label="Conversation"><div id="conv" role="log" aria-label="Conversation"><div class="skel skel-line"></div><div class="skel skel-line short"></div></div><div id="empty"><h2>How can I help you today?</h2><div id="emptyModel" class="mut">model: -</div><div class="chips"><button data-s="Explain recursion">Explain recursion</button><button data-s="List models">List models</button></div></div></main>
+<div id="transport" role="region" aria-label="Transport"><div class="seg" role="tablist" aria-label="Mode"><span class="seg-ind" aria-hidden="true"></span><button data-mode="chat" role="tab" aria-selected="true">Chat</button><button data-mode="agent" role="tab" aria-selected="false">Agent</button></div><div id="composerRow"><textarea id="composer" rows="1" placeholder="Message AgentRouter... (Enter send)" aria-label="Message AgentRouter"></textarea><div class="cbar"><span><button aria-label="Attach">+</button><button aria-label="More">…</button></span><span class="top-sp"></span><button id="runBtn" class="pri" aria-label="Send"><span class="send-lbl">↑</span></button><button id="stopBtn" hidden>Stop</button></div><details id="chatParams"><summary>Parameters</summary><div class="param-grid"><label for="sysPrompt">system</label><textarea id="sysPrompt" rows="2" placeholder="system prompt"></textarea><label for="maxTokens">max-tokens</label><input id="maxTokens" type="number" min="1" max="128000"><label for="temperature">temperature</label><input id="temperature" type="number" min="0" max="2" step="0.1"></div></details></div><div class="transport-meta"><span id="stepCount" class="mut odo">step 0</span><span id="elapsed" class="mono odo">00:00.0</span><span class="meter-wrap"><canvas id="meter" width="112" height="28" aria-hidden="true"></canvas><span id="meterVal" role="status">0 tok/s</span></span><span class="hint">Enter sends. Shift+Enter newline. Ctrl+K palette.</span></div></div>
 </div>
-</div>
-</main>
-<div id="transport" role="region" aria-label="Transport">
-<div class="seg" role="tablist" aria-label="Mode">
-<span class="seg-ind" aria-hidden="true"></span>
-<button data-mode="chat" role="tab" aria-selected="true">Chat</button>
-<button data-mode="agent" role="tab" aria-selected="false">Agent</button>
-</div>
-<button id="modelBtn" aria-haspopup="listbox" aria-expanded="false">Select model</button>
-<span id="modelName" class="mut">model: -</span>
-<span id="statusDot" class="dot warn" role="status" aria-label="Connection status"></span>
-<button id="railOpenBtn" class="only-mobile" aria-label="Open sessions">=</button>
-<div id="composerRow">
-<textarea id="composer" rows="1" placeholder="Message AgentRouter... (Enter send)" aria-label="Message AgentRouter"></textarea>
-<button id="runBtn" class="pri" aria-label="Send"><span class="send-lbl">Send</span></button>
-<button id="stopBtn" hidden>Stop</button>
-<button id="inspectorToggle" aria-expanded="true">Hide panel</button>
-</div>
-<details id="chatParams">
-<summary>Parameters</summary>
-<div class="param-grid">
-<label for="sysPrompt">system</label>
-<textarea id="sysPrompt" rows="2" placeholder="system prompt"></textarea>
-<label for="maxTokens">max-tokens</label>
-<input id="maxTokens" type="number" min="1" max="128000">
-<label for="temperature">temperature</label>
-<input id="temperature" type="number" min="0" max="2" step="0.1">
-</div>
-</details>
-<div class="transport-meta">
-<span id="stepCount" class="mut odo">step 0</span>
-<span id="elapsed" class="mono odo">00:00.0</span>
-<span class="meter-wrap"><canvas id="meter" width="112" height="28" aria-hidden="true"></canvas><span id="meterVal" role="status">0 tok/s</span></span>
-<span class="hint">Enter sends. Shift+Enter newline. Ctrl+K palette.</span>
-</div>
-</div>
-</div>
-<aside id="inspector" aria-label="Inspector" aria-hidden="false">
-<div class="insp-inner">
-<h3>Inspector</h3>
-<div class="skel skel-block"></div>
-<p class="mut">Tool details, run stats, and settings land here in later phases.</p>
-</div>
-</aside>
+<aside id="inspector" aria-label="Inspector" aria-hidden="false"><div class="insp-inner"><h3>Inspector</h3><div class="skel skel-block"></div><p class="mut">Tool details, run stats, and settings land here in later phases.</p></div></aside>
 </div>
 <div id="offlineBanner" class="banner" hidden></div>
 </div>

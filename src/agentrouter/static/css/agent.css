@@ -27,7 +27,6 @@
 @keyframes tl-sweep{from{transform:translateX(-100%)}to{transform:translateX(350%)}}
 .tl-note{font-size:.84rem;color:var(--mut);padding:.15rem .2rem;white-space:pre-wrap;word-break:break-word}
 .tl-args,.tl-res{background:var(--code);border-radius:8px;padding:.5rem;overflow:auto;max-height:16rem;font-size:.78rem;max-width:100%;white-space:pre-wrap;word-break:break-word}
-.tl-more{font-size:.78rem;margin-top:.3rem}
 .tl-diff{display:flex;flex-direction:column;gap:.4rem;margin:.4rem 0;font-size:.78rem}
 .tl-hunk{border:1px solid var(--line);border-radius:8px;overflow:hidden}
 .tl-hunk-h{color:var(--mut);padding:.25rem .5rem;background:var(--code)}

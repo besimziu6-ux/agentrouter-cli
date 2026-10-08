@@ -8,11 +8,5 @@ button:disabled{opacity:.55;cursor:default}
 input,textarea,select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px}
 input[type="checkbox"],input[type="radio"]{min-height:20px;min-width:20px}
 #app{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}
-#bar{display:flex;align-items:center;gap:.6rem;padding:.55rem 1rem;border-bottom:1px solid var(--line)}
-#wrap{max-width:var(--maxw);width:100%;margin:0 auto;padding:0 1rem;display:flex;flex-direction:column;flex:1}
-#conv{flex:1;display:flex;flex-direction:column;gap:.8rem;padding:1rem 0;min-height:30vh}
-#dock{position:sticky;bottom:0;background:var(--bg);padding:.7rem 0 1rem}
-#composerRow{display:flex;gap:.5rem;align-items:flex-end}
-#composer{flex:1;padding:.6rem .75rem;resize:none;min-height:44px}
 .hint{font-size:.78rem;color:var(--mut)}
 code,pre{font-family:var(--mono)}

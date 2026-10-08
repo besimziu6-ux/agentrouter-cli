@@ -14,7 +14,7 @@ test("resolveTheme handles os and fallback", () => {
   assert.strictEqual(resolveTheme("light", false), "light");
   assert.strictEqual(resolveTheme("os", true), "light");
   assert.strictEqual(resolveTheme("os", false), "dark");
-  assert.strictEqual(resolveTheme("bogus", false), "dark");
+  assert.strictEqual(resolveTheme("bogus", false), "light");
 });
 
 test("resolveMotion prefers reduced default", () => {

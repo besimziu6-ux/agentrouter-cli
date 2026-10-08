@@ -11,10 +11,10 @@ export function resolveTheme(stored, prefersLight) {
   if (stored === "os" || stored === "system" || stored == null || stored === "") {
     if (stored === "os" || stored === "system" || !stored) {
       if (typeof prefersLight === "boolean") return prefersLight ? "light" : "dark";
-      return "dark";
+      return "light";
     }
   }
-  return "dark";
+  return "light";
 }
 
 export function resolveMotion(stored, prefersReduced) {
